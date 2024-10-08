@@ -1,0 +1,547 @@
+#+TITLE: Personal Emacs Config
+#+AUTHOR: David Mebo
+#+STARTUP: content
+
+* Package Manager(s)
+List of package repositories to download/update packages.
+** Package Repo(s)
+#+begin_src emacs-lisp
+(require 'package)
+(add-to-list 'package-archives '("gnu"   . "https://elpa.gnu.org/packages/"))
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+(package-initialize)
+
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+(eval-and-compile
+  (setq use-package-always-ensure t
+        use-package-expand-minimally t))
+#+end_src
+
+* Interface
+Make stuff pretty, by my own standards.
+** Theme(s)
+#+begin_src emacs-lisp
+(use-package doom-themes
+  :ensure t
+  :config
+  (setq doom-themes-enable-bold t
+        doom-themes-enable-italic t)
+  (load-theme 'doom-dracula t)
+  (doom-themes-visual-bell-config)
+  (doom-themes-org-config))
+#+end_src
+
+** Dashboard
+#+begin_src emacs-lisp
+   (use-package dashboard
+     :ensure t
+     :config
+     (dashboard-setup-startup-hook))
+   (setq dashboard-items '((recents   . 5)
+			   (projects  . 5)))
+   (setq dashboard-display-icons-p t)
+   (setq dashboard-icon-type 'nerd-icons)
+   ;; uncomment line below if you found a way to find the 'nil' octicon
+   ;; me? don't care for now...
+   ;; (setq dashboard-set-heading-icons t)
+  (setq dashboard-set-file-icons t)
+  (add-to-list 'dashboard-items '(agenda) t)
+  (setq dashboard-filter-agenda-entry 'dashboard-no-filter-agenda)
+#+end_src
+
+** Nerd-Icons-Completion
+#+begin_src emacs-lisp
+(use-package nerd-icons-completion
+  :after marginalia
+  :config
+  (nerd-icons-completion-mode)
+  (add-hook 'marginalia-mode-hook #'nerd-icons-completion-marginalia-setup))
+#+end_src
+
+** Nerd-Icons
+#+begin_src emacs-lisp
+  (use-package nerd-icons
+    ;; :ensure t
+    ;; :custom
+    ;; (nerd-icons-font-family "Symbols Nerd Font Mono")
+    )
+#+end_src
+
+** Nerd-Icons-Dired
+#+begin_src emacs-lisp
+  (use-package nerd-icons-dired
+    :hook
+    (dired-mode . nerd-icons-dired-mode))
+#+end_src
+
+** Dired
+*** Dired-X
+#+begin_src emacs-lisp
+;; Dired-x
+  (with-eval-after-load 'dired
+    (setq dired-x-hands-off-my-keys nil)
+    (require 'dired-x))
+  (add-hook 'dired-mode-hook
+	    (lambda ()))
+#+end_src
+
+** Kind-Icons
+#+begin_src emacs-lisp
+  (use-package kind-icon
+    :if (display-graphic-p)
+    :ensure t
+    :after corfu
+    :custom
+    (kind-icon-default-face 'corfu-default)
+    :config
+    (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+#+end_src
+
+** Doom-Modeline
+#+begin_src emacs-lisp
+  (use-package doom-modeline
+    :ensure t
+    :init (doom-modeline-mode 1))
+  (setq doom-modeline-position-column-line-format '("%l:%c"))
+#+end_src
+
+* Minibuffer/Completion
+Completion in the minibuffer and buffer.
+** Vertico
+#+begin_src emacs-lisp
+  (use-package vertico
+    :custom
+    (vertico-count 20)
+    (vertico-resize t)
+    :init
+    (vertico-mode))
+#+end_src
+
+** Orderless
+#+begin_src emacs-lisp
+  (use-package orderless
+    :ensure t
+    :custom
+    (completion-styles '(orderless basic))
+    (completion-category-defaults nil)
+    (completion-category-overrides '((file (styles partial-completion)))))
+#+end_src
+
+** Marginalia
+#+begin_src emacs-lisp
+(use-package marginalia
+   :init
+  (marginalia-mode))
+#+end_src
+
+** Embark
+#+begin_src emacs-lisp
+  (use-package embark
+    :ensure t
+    :demand t
+    :bind
+    (("C-." . embark-act)
+     ("C-;" . embark-dwim)     
+     ("C-h B" . embark-bindings))
+    :init
+    (setq prefix-help-command #'embark-prefix-help-command)
+    (setq embark-indicators
+	  '(embark-minimal-indicator
+	    embark-highlight-indicator
+	    embark-isearch-highlight-indicator))
+    :config
+    (add-to-list 'display-buffer-alist
+		 '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+		   nil
+		   (window-parameters (mode-line-format . none)))))
+
+  (use-package embark-consult
+    :ensure t
+    :hook
+    (embark-collect-mode . consult-preview-at-point-mode))
+#+end_src
+
+** Consult
+#+begin_src emacs-lisp
+  (use-package consult
+    :ensure t
+    :bind (;; C-c bindings in `mode-specific-map'
+	   ("C-c M-x" . consult-mode-command)
+	   ("C-c h" . consult-history)
+	   ("C-c k" . consult-kmacro)
+	   ("C-c m" . consult-man)
+	   ("C-c i" . consult-info)
+	   ([remap Info-search] . consult-info)
+	   ;; C-x bindings in `ctl-x-map'
+	   ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+	   ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
+	   ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+	   ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
+	   ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
+	   ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
+	   ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
+	   ;; Custom M-# bindings for fast register access
+	   ("M-#" . consult-register-load)
+	   ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+	   ("C-M-#" . consult-register)
+	   ;; Other custom bindings
+	   ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+	   ;; M-g bindings in `goto-map'
+	   ("M-g e" . consult-compile-error)
+	   ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
+	   ("M-g g" . consult-goto-line)             ;; orig. goto-line
+	   ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+	   ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
+	   ("M-g m" . consult-mark)
+	   ("M-g k" . consult-global-mark)
+	   ("M-g i" . consult-imenu)
+	   ("M-g I" . consult-imenu-multi)
+	   ;; M-s bindings in `search-map'
+	   ("M-s d" . consult-find)                  ;; Alternative: consult-fd
+	   ("M-s c" . consult-locate)
+	   ("M-s g" . consult-grep)
+	   ("M-s G" . consult-git-grep)
+	   ("M-s r" . consult-ripgrep)
+	   ("M-s l" . consult-line)
+	   ("M-s L" . consult-line-multi)
+	   ("M-s k" . consult-keep-lines)
+	   ("M-s u" . consult-focus-lines)
+	   ;; Isearch integration
+	   ("M-s e" . consult-isearch-history)
+	   :map isearch-mode-map
+	   ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+	   ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+	   ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+	   ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
+	   ;; Minibuffer history
+	   :map minibuffer-local-map
+	   ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+	   ("M-r" . consult-history))                ;; orig. previous-matching-history-element
+
+    ;; Enable automatic preview at point in the *Completions* buffer. This is
+    ;; relevant when you use the default completion UI.
+    :hook (completion-list-mode . consult-preview-at-point-mode)
+
+    ;; The :init configuration is always executed (Not lazy)
+    :init
+
+    ;; Optionally configure the register formatting. This improves the register
+    ;; preview for `consult-register', `consult-register-load',
+    ;; `consult-register-store' and the Emacs built-ins.
+    (setq register-preview-delay 0.5
+	  register-preview-function #'consult-register-format)
+
+    ;; Optionally tweak the register preview window.
+    ;; This adds thin lines, sorting and hides the mode line of the window.
+    (advice-add #'register-preview :override #'consult-register-window)
+
+    ;; Use Consult to select xref locations with preview
+    (setq xref-show-xrefs-function #'consult-xref
+	  xref-show-definitions-function #'consult-xref)
+
+    ;; Configure other variables and modes in the :config section,
+    ;; after lazily loading the package.
+    :config
+
+    ;; Optionally configure preview. The default value
+    ;; is 'any, such that any key triggers the preview.
+    ;; (setq consult-preview-key 'any)
+    ;; (setq consult-preview-key "M-.")
+    ;; (setq consult-preview-key '("S-<down>" "S-<up>"))
+    ;; For some commands and buffer sources it is useful to configure the
+    ;; :preview-key on a per-command basis using the `consult-customize' macro.
+    (consult-customize
+     consult-theme :preview-key '(:debounce 0.2 any)
+     consult-ripgrep consult-git-grep consult-grep
+     consult-bookmark consult-recent-file consult-xref
+     consult--source-bookmark consult--source-file-register
+     consult--source-recent-file consult--source-project-recent-file
+     ;; :preview-key "M-."
+     :preview-key '(:debounce 0.4 any))
+
+    ;; Optionally configure the narrowing key.
+    ;; Both < and C-+ work reasonably well.
+    (setq consult-narrow-key "<") ;; "C-+"
+
+    ;; Optionally make narrowing help available in the minibuffer.
+    ;; You may want to use `embark-prefix-help-command' or which-key instead.
+    ;; (keymap-set consult-narrow-map (concat consult-narrow-key " ?") #'consult-narrow-help)
+  )
+#+end_src
+
+** Corfu
+#+begin_src emacs-lisp
+	    (use-package corfu
+	      :custom
+	      (completion-category-defaults nil)
+	      (completion-category-overrides nil)
+	      (completion-cycle-threshold 4)
+	      (corfu-auto t)
+	      (corfu-quit-no-match 'separator)
+	      (add-hook 'after-init-hook 'global-corfu-mode))
+	    (with-eval-after-load 'corfu
+	      (corfu-popupinfo-mode)
+	      (global-corfu-mode)
+	      :config
+	      (keymap-unset corfu-map "RET"))
+
+	    (use-package corfu-popupinfo
+	      :after corfu
+	      :ensure nil
+	      :hook (corfu-mode . corfu-popupinfo-mode)
+	      :custom
+	      (corfu-popupinfo-delay '(0.25 . 0.1))
+	      (corfu-popupinfo-hide nil)
+	      :config
+	      (corfu-popupinfo-mode))
+#+end_src
+
+** Cape
+#+begin_src emacs-lisp
+  (use-package cape
+    :bind ("C-c p" . cape-prefix-map) ;; Alternative keys: M-p, M-+, ...
+    :init
+    (add-hook 'completion-at-point-functions #'cape-dabbrev)
+    (add-hook 'completion-at-point-functions #'cape-file)
+    (add-hook 'completion-at-point-functions #'cape-elisp-block))
+#+end_src
+
+* LSP
+Language servers.
+** Eglot
+#+begin_src emacs-lisp
+  (use-package eglot
+    :ensure t
+    :demand t
+    :config
+    (add-to-list 'eglot-server-programs '((sh-mode bash-ts-mode) . ("bash-language-server" "start")))
+    (add-to-list 'eglot-server-programs '((c-mode c++-mode c-ts-mode) "clangd"))
+    (add-hook 'sh-mode-hook 'eglot-ensure)
+    (add-hook 'bash-ts-mode-hook 'eglot-ensure)
+    (add-hook 'c-mode-hook 'eglot-ensure)
+    (add-hook 'c-ts-mode-hook 'eglot-ensure)
+    (add-hook 'c++-mode-hook 'eglot-ensure))
+  #+end_src
+
+
+#+begin_src emacs-lisp
+  (use-package rust-mode
+    :ensure t)
+
+  (use-package rust-ts-mode
+    :ensure t
+    :after (eglot)
+    :hook ((rust-ts-mode . eglot-ensure)
+	   (rust-ts-mode . (lambda ()
+			     (eglot-inlay-hints-mode -1))))
+    :config
+    (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
+    (add-to-list 'eglot-server-programs '(rust-ts-mode . ("rust-analyzer"))))
+
+  ;; to fix suspiscious state message?
+  (use-package flycheck-rust
+    :ensure t)
+  (with-eval-after-load 'rust-mode
+  (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
+#+end_src
+
+** Tree-sitter
+#+begin_src emacs-lisp
+  (use-package treesit-auto
+    :custom
+    (treesit-auto-install 'prompt)
+    :config
+    (treesit-auto-add-to-auto-mode-alist 'all)
+    (global-treesit-auto-mode))
+#+end_src
+
+** Markdown
+#+begin_src emacs-lisp
+(use-package markdown-mode
+  :hook ((markdown-mode . visual-line-mode)))
+#+end_src
+
+* Error Checking
+Error checks...
+** Flycheck
+#+begin_src emacs-lisp
+(use-package flycheck
+  :ensure t
+  :config
+  (add-hook 'after-init-hook #'global-flycheck-mode))
+#+end_src
+
+# flycheck-color-mode-line
+#+begin_src emacs-lisp
+      (use-package flycheck-color-mode-line
+	:ensure t
+	:config
+	(add-hook 'flycheck-mode-hook 'flycheck-color-mode-line-mode))
+#+end_src
+#+begin_src emacs-lisp
+      (use-package flycheck-pos-tip
+	:ensure t
+	:config
+	(add-hook 'after-init-hook #'flycheck-pos-tip-mode))
+#+end_src
+
+* Org
+WIP for somme stuff, till then, no notes...
+** Org
+#+begin_src emacs-lisp
+    (use-package org
+      :ensure t)
+    (global-set-key (kbd "C-c l") #'org-store-link)
+    (global-set-key (kbd "C-c a") #'org-agenda)
+    (global-set-key (kbd "C-c c") #'org-capture)
+    (org-indent-mode)
+    (variable-pitch-mode 1)
+    (visual-line-mode 1)
+
+#+end_src
+
+** Org-Modern
+#+begin_src emacs-lisp
+  (use-package org-modern
+      :ensure t)
+  (add-hook 'org-mode-hook #'org-modern-mode)
+  (add-hook 'org-agenda-finalize-hook #'org-modern-agenda)
+
+#+end_src
+** Org-Agenda
+#+begin_src emacs-lisp
+      (setq org-agenda-dim-blocked-tasks nil
+	    org-agenda-inhibit-startup t
+	    org-agenda-use-tag-inheritance nil
+	    org-directory "~/Documents/Org/"
+	    org-agenda-files '("personal.org" "work.org" "journal.org"))
+#+end_src
+
+** Org-Todo
+#+begin_src emacs-lisp
+;; automatic key-menu setup for TODO
+  (setq org-todo-keywords
+	'((sequence "TODO(t)" "|" "DONE(d)")
+	  (type "Work(w)" "Personal(p)" "Misc(m)" "Started(s)" "|" "DONE(d)")
+	  (sequence "|" "CANCELLED(c)")))
+
+  ;; Org TODO faces
+  (setq org-todo-keyword-faces
+	'(("TODO" . org-warning)
+	  ("Started" . "yellow")
+	  ;; add more based on colors to do...
+	  ("CANCELLED" . (:foreground "blue" :weight bold))))
+
+  ;; Store note in a logbook of sorts
+  (setq org-log-done 'note)
+
+  ;; TODO subtask done automatically
+  (defun org-summary-todo (n-done n-not-done)
+    "Switch entry to DONE when all subentries are done, to TODO otherwise"
+    (let (org-log-done org-todo-log-states)  ; turn off logging
+      (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
+  (add-hook 'org-after-todo-statistics-hook #'org-summary-todo)
+
+  ;; tags keybind C-c C-q set tag command
+  ;; personalized tags, still allows for custom tag input
+  (setq org-tag-alist '(("work" .?w) ("personal" .?p) ("misc" . ?m)))
+#+end_src
+
+** Org-Capture
+#+begin_src emacs-lisp
+    (setq org-default-notes-file (concat org-directory "/notes.org"))
+    (setq org-capture-templates
+	'(("t" "Todo" entry (file+headline "personal.org" "Tasks")
+	   "* TODO %?\n  %i\n  %a")
+	  ("w" "Todo" entry (file+headline "work.org" "Tasks")
+	   "* TODO %?\n  %i\n  %a")
+	  ("j" "Journal" entry (file "journal.org")
+	   "* %?\nEntered on %U\n  %i\n  %a")))
+#+end_src
+
+* Miscellanous
+#+begin_src emacs-lisp
+		  ;; Automatically reread from disk if the underlying file changes
+		  (setopt auto-revert-avoid-polling t)
+		  (setopt auto-revert-interval 5)
+		  (global-auto-revert-mode)
+
+
+		  ;; save history of minibuffer
+		  (savehist-mode)
+
+		  ;; Move through windows with Ctrl-<arrow keys>
+		  (windmove-default-keybindings 'control) ; You can use other modifiers here
+
+		  ;; Fix archaic defaults
+		  (setopt sentence-end-double-space nil)
+
+		  ;; Don't litter file system with *~ backup files; put them all inside
+		  ;; ~/.emacs.d/backup or wherever
+		  (defun backup-file-name (fpath)
+		    "Return a new file path of a given file path.
+		  If the new path's directories does not exist, create them."
+		    (let* ((backupRootDir (concat user-emacs-directory "emacs-backup/"))
+			   (filePath (replace-regexp-in-string "[A-Za-z]:" "" fpath )) ; remove Windows driver letter in path
+			   (backupFilePath (replace-regexp-in-string "//" "/" (concat backupRootDir filePath "~") )))
+		      (make-directory (file-name-directory backupFilePath) (file-name-directory backupFilePath))
+		      backupFilePath))
+		  (setopt make-backup-file-name-function 'backup-file-name)
+
+		(setopt line-number-mode t)                        ; Show current line in modeline
+		(setopt column-number-mode t)                      ; Show column as well
+
+		; Display line numbers in programming mode
+	      (add-hook 'prog-mode-hook 'display-line-numbers-mode)
+	      (setopt display-line-numbers-width 3)           ; Set a minimum width
+
+	      ;; Nice line wrapping when working with text
+	      (add-hook 'text-mode-hook 'visual-line-mode)
+
+	      ;; Modes to highlight the current line with
+	      (let ((hl-line-hooks '(text-mode-hook prog-mode-hook)))
+		(mapc (lambda (hook) (add-hook hook 'hl-line-mode)) hl-line-hooks))
+
+	      ;; C tabs
+	    (setq c-default-style "bsd"
+		  c-basic-offset 8
+		  tab-width 8
+		  indent-tabs-mode t)
+
+	    ;; whitespace
+	  (require 'whitespace)
+	  (setq whitespace-line-column 80) ;; limit line length to 80
+	  (setq whitespace-style '(face lines-tail))
+	  (add-hook 'prog-mode-hook 'whitespace-mode)
+
+	  ;; format all
+	(use-package format-all
+	  :bind ("C-f" . format-all-buffer))
+
+	;; indent guide
+      (use-package highlight-indent-guides
+	:hook (prog-mode . highlight-indent-guides-mode)
+	:custom (highlight-indent-guides-method 'character))
+
+      (fset 'yes-or-no-p 'y-or-n-p)
+    (setq use-dialog-box nil)
+
+    (add-to-list 'exec-path "~/.cargo/bin/")
+
+    (setq-default fill-column 80)
+#+end_src
+
+* Projects
+Project Management.
+** Projectile
+#+begin_src emacs-lisp
+(use-package projectile
+  :ensure t
+  :init
+  (projectile-mode +1)
+  :bind (:map projectile-mode-map
+              ("s-p" . projectile-command-map)
+              ("C-c p" . projectile-command-map)))
+#+end_src
