@@ -12,6 +12,9 @@ require('lualine').setup()
 -- Theme/ColorScheme
 vim.cmd.colorscheme "catppuccin-macchiato"
 
+-- toggleterm
+require("toggleterm").setup{}
+require("toggleterm_config")
 -- testing configs separate...
 -- IT WORKS!
 -- keymaps doesn't work!
@@ -32,6 +35,8 @@ require("lsp_config")
 require("autopairs_config")
 
 require("whichkey_config")
+
+require("nvim-tree").setup()
 
 require("treesitter_config")
 

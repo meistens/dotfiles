@@ -1,4 +1,3 @@
-
 local status_ok, which_key = pcall(require, "which-key")
 if not status_ok then
     return
@@ -119,6 +118,14 @@ local mappings = {
         k = { "<cmd>Telescope keymaps<cr>", "Keymaps" },
         c = { "<cmd>Telescope commands<cr>", "Commands" },
     },
+
+	-- ToggleTerm
+	t = {
+		name = "Terminal",
+		f = { "<cmd>ToggleTerm direction=float<cr>", "Float" },
+		h = { "<cmd>ToggleTerm size=10 direction=horizontal<cr>", "Horizontal" }, -- Horizontal Terminal
+        v = { "<cmd>ToggleTerm size=80 direction=vertical<cr>", "Vertical" },
+	},
 }
 
 which_key.setup(setup)
