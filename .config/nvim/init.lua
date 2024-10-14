@@ -1,47 +1,37 @@
-require("options")
-require("keymaps")
+vim.g.base46_cache = vim.fn.stdpath "data" .. "/base46/"
+vim.g.mapleader = " "
 
-require("config.lazy")
+-- bootstrap lazy and all plugins
+local lazypath = vim.fn.stdpath "data" .. "/lazy/lazy.nvim"
 
-vim.opt.termguicolors = true
-require("bufferline").setup{}
+if not vim.uv.fs_stat(lazypath) then
+  local repo = "https://github.com/folke/lazy.nvim.git"
+  vim.fn.system { "git", "clone", "--filter=blob:none", repo, "--branch=stable", lazypath }
+end
 
--- Lualine
-require('lualine').setup()
+vim.opt.rtp:prepend(lazypath)
 
--- Theme/ColorScheme
-vim.cmd.colorscheme "catppuccin-macchiato"
+local lazy_config = require "configs.lazy"
 
--- toggleterm
-require("toggleterm").setup{}
-require("toggleterm_config")
--- testing configs separate...
--- IT WORKS!
--- keymaps doesn't work!
-require("treesitter_config")
+-- load plugins
+require("lazy").setup({
+  {
+    "NvChad/NvChad",
+    lazy = false,
+    branch = "v2.5",
+    import = "nvchad.plugins",
+  },
 
-require("telescope_config")
+  { import = "plugins" },
+}, lazy_config)
 
-require("bufferline_config")
+-- load theme
+dofile(vim.g.base46_cache .. "defaults")
+dofile(vim.g.base46_cache .. "statusline")
 
-require("lualine_config")
+require "options"
+require "nvchad.autocmds"
 
-require("hop_config")
-
-require("alpha_config")
-
-require("lsp_config")
-
-require("autopairs_config")
-
-require("whichkey_config")
-
-require("nvim-tree").setup()
-
-require("treesitter_config")
-
-require("cmp_config")
-
-require('lspconfig').clangd.setup({})
-require('lspconfig').rust_analyzer.setup({})
--- You would add this setup function after calling lsp_zero.extend_lspconfig()
+vim.schedule(function()
+  require "mappings"
+end)
