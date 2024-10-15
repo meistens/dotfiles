@@ -14,4 +14,38 @@ M.base46 = {
 	-- },
 }
 
+M.ui = {
+  icons = true,
+  lspkind_text = true,
+  style = "default",
+}
+
+M.nvdash = {
+  load_on_startup = true,
+}
+
+      M.term = {
+      winopts = { number = false, relativenumber = false },
+      sizes = { sp = 0.3, vsp = 0.2, ["bo sp"] = 0.3, ["bo vsp"] = 0.2 },
+    float = {
+      relative = "editor",
+      row = 0.3,
+      col = 0.25,
+      width = 0.5,
+      height = 0.4,
+      border = "single",
+    },
+}
+
+M.lsp = { signature = true }
+
+M.cheatsheet = {
+  theme = "grid",
+}
+
+M.mason = {
+  cmd = true,
+  pkgs = {}
+}
+
 return M
