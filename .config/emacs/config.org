@@ -35,17 +35,14 @@ Make stuff pretty, by my own standards.
 
 ** Dashboard
 #+begin_src emacs-lisp
-   (use-package dashboard
+  (use-package dashboard
      :ensure t
      :config
      (dashboard-setup-startup-hook))
-   (setq dashboard-items '((recents   . 5)
-			   (projects  . 5)))
-   (setq dashboard-display-icons-p t)
-   (setq dashboard-icon-type 'nerd-icons)
-   ;; uncomment line below if you found a way to find the 'nil' octicon
-   ;; me? don't care for now...
-   ;; (setq dashboard-set-heading-icons t)
+  (setq dashboard-items '((recents   . 5)
+			  (projects  . 5)))
+  (setq dashboard-display-icons-p t)
+  (setq dashboard-icon-type 'nerd-icons)
   (setq dashboard-set-file-icons t)
   (add-to-list 'dashboard-items '(agenda) t)
   (setq dashboard-filter-agenda-entry 'dashboard-no-filter-agenda)
@@ -74,17 +71,6 @@ Make stuff pretty, by my own standards.
   (use-package nerd-icons-dired
     :hook
     (dired-mode . nerd-icons-dired-mode))
-#+end_src
-
-** Dired
-*** Dired-X
-#+begin_src emacs-lisp
-;; Dired-x
-  (with-eval-after-load 'dired
-    (setq dired-x-hands-off-my-keys nil)
-    (require 'dired-x))
-  (add-hook 'dired-mode-hook
-	    (lambda ()))
 #+end_src
 
 ** Kind-Icons
@@ -273,29 +259,48 @@ Completion in the minibuffer and buffer.
 
 ** Corfu
 #+begin_src emacs-lisp
-	    (use-package corfu
-	      :custom
-	      (completion-category-defaults nil)
-	      (completion-category-overrides nil)
-	      (completion-cycle-threshold 4)
-	      (corfu-auto t)
-	      (corfu-quit-no-match 'separator)
-	      (add-hook 'after-init-hook 'global-corfu-mode))
-	    (with-eval-after-load 'corfu
-	      (corfu-popupinfo-mode)
-	      (global-corfu-mode)
-	      :config
-	      (keymap-unset corfu-map "RET"))
+    ;; TAB-only configuration
+    (use-package corfu
+      :custom
+      (corfu-auto t)               ;; Enable auto completion
+      (corfu-preselect 'directory) ;; Select the first candidate, except for directories
 
-	    (use-package corfu-popupinfo
-	      :after corfu
-	      :ensure nil
-	      :hook (corfu-mode . corfu-popupinfo-mode)
-	      :custom
-	      (corfu-popupinfo-delay '(0.25 . 0.1))
-	      (corfu-popupinfo-hide nil)
-	      :config
-	      (corfu-popupinfo-mode))
+      :init
+      (global-corfu-mode)
+
+      :config
+      ;; Free the RET key for less intrusive behavior.
+      ;; Option 1: Unbind RET completely
+      ;; (keymap-unset corfu-map "RET")
+      ;; Option 2: Use RET only in shell modes
+      (keymap-set corfu-map "RET" `( menu-item "" nil :filter
+				     ,(lambda (&optional _)
+					(and (derived-mode-p 'eshell-mode 'comint-mode)
+					     #'corfu-send)))))
+    ;; new_line configuration use orderless for eglot
+    (setq completion-category-overrides '((eglot (styles orderless))
+					  (eglot-capf (styles orderless))))
+
+    ;; undo eglot default complete-category-defaults
+    (with-eval-after-load 'eglot
+      (setq completion-category-defaults nil))
+
+    ;; enable cache busting, needs cape installed
+    (advice-add 'eglot-completion-at-point :around #'cape-wrap-buster)
+
+	(use-package emacs
+	  :custom
+	  (text-mode-ispell-word-completion nil))
+
+	(use-package corfu-popupinfo
+	  :after corfu
+	  :ensure nil
+	  :hook (corfu-mode . corfu-popupinfo-mode)
+	  :custom
+	  (corfu-popupinfo-delay '(0.25 . 0.1))
+	  (corfu-popupinfo-hide nil)
+	  :config
+	  (corfu-popupinfo-mode))
 #+end_src
 
 ** Cape
@@ -306,6 +311,53 @@ Completion in the minibuffer and buffer.
     (add-hook 'completion-at-point-functions #'cape-dabbrev)
     (add-hook 'completion-at-point-functions #'cape-file)
     (add-hook 'completion-at-point-functions #'cape-elisp-block))
+
+  ;; make cape super capf for eglot
+  ;; requires tempel.el
+  (defun my/eglot-capf ()
+    (setq-local completion-at-point-functions
+		(list (cape-capf-super
+		       #'eglot-completion-at-point
+		       #'tempel-expand
+		       #'cape-file))))
+  (add-hook 'eglot-managed-mode-hook #'my/eglot-capf)
+#+end_src
+
+** Tempel
+#+begin_src emacs-lisp
+  ;; Configure Tempel
+(use-package tempel
+  ;; Require trigger prefix before template name when completing.
+  ;; :custom
+  ;; (tempel-trigger-prefix "<")
+
+  :bind (("M-+" . tempel-complete) ;; Alternative tempel-expand
+         ("M-*" . tempel-insert))
+
+  :init
+
+  ;; Setup completion at point
+  (defun tempel-setup-capf ()
+    ;; Add the Tempel Capf to `completion-at-point-functions'.
+    ;; `tempel-expand' only triggers on exact matches. Alternatively use
+    ;; `tempel-complete' if you want to see all matches, but then you
+    ;; should also configure `tempel-trigger-prefix', such that Tempel
+    ;; does not trigger too often when you don't expect it. NOTE: We add
+    ;; `tempel-expand' *before* the main programming mode Capf, such
+    ;; that it will be tried first.
+    (setq-local completion-at-point-functions
+                (cons #'tempel-expand
+                      completion-at-point-functions)))
+
+  (add-hook 'conf-mode-hook 'tempel-setup-capf)
+  (add-hook 'prog-mode-hook 'tempel-setup-capf)
+  (add-hook 'text-mode-hook 'tempel-setup-capf)
+
+  ;; Optionally make the Tempel templates available to Abbrev,
+  ;; either locally or globally. `expand-abbrev' is bound to C-x '.
+  ;; (add-hook 'prog-mode-hook #'tempel-abbrev-mode)
+  ;; (global-tempel-abbrev-mode)
+)
 #+end_src
 
 * LSP
@@ -314,7 +366,6 @@ Language servers.
 #+begin_src emacs-lisp
   (use-package eglot
     :ensure t
-    :demand t
     :config
     (add-to-list 'eglot-server-programs '((sh-mode bash-ts-mode) . ("bash-language-server" "start")))
     (add-to-list 'eglot-server-programs '((c-mode c++-mode c-ts-mode) "clangd"))
@@ -325,26 +376,9 @@ Language servers.
     (add-hook 'c++-mode-hook 'eglot-ensure))
   #+end_src
 
-
+ 
 #+begin_src emacs-lisp
-  (use-package rust-mode
-    :ensure t)
-
-  (use-package rust-ts-mode
-    :ensure t
-    :after (eglot)
-    :hook ((rust-ts-mode . eglot-ensure)
-	   (rust-ts-mode . (lambda ()
-			     (eglot-inlay-hints-mode -1))))
-    :config
-    (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
-    (add-to-list 'eglot-server-programs '(rust-ts-mode . ("rust-analyzer"))))
-
-  ;; to fix suspiscious state message?
-  (use-package flycheck-rust
-    :ensure t)
-  (with-eval-after-load 'rust-mode
-  (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
+  ;; removed rust-eglot config, crashes Emacs on my end
 #+end_src
 
 ** Tree-sitter
@@ -399,7 +433,6 @@ WIP for somme stuff, till then, no notes...
     (org-indent-mode)
     (variable-pitch-mode 1)
     (visual-line-mode 1)
-
 #+end_src
 
 ** Org-Modern
@@ -463,74 +496,76 @@ WIP for somme stuff, till then, no notes...
 
 * Miscellanous
 #+begin_src emacs-lisp
-		  ;; Automatically reread from disk if the underlying file changes
-		  (setopt auto-revert-avoid-polling t)
-		  (setopt auto-revert-interval 5)
-		  (global-auto-revert-mode)
+		;; Automatically reread from disk if the underlying file changes
+		(setopt auto-revert-avoid-polling t)
+		(setopt auto-revert-interval 5)
+		(global-auto-revert-mode)
 
 
-		  ;; save history of minibuffer
-		  (savehist-mode)
+		;; save history of minibuffer
+		(savehist-mode)
 
-		  ;; Move through windows with Ctrl-<arrow keys>
-		  (windmove-default-keybindings 'control) ; You can use other modifiers here
+		;; Move through windows with Ctrl-<arrow keys>
+		(windmove-default-keybindings 'control) ; You can use other modifiers here
 
-		  ;; Fix archaic defaults
-		  (setopt sentence-end-double-space nil)
+		;; Fix archaic defaults
+		(setopt sentence-end-double-space nil)
 
-		  ;; Don't litter file system with *~ backup files; put them all inside
-		  ;; ~/.emacs.d/backup or wherever
-		  (defun backup-file-name (fpath)
-		    "Return a new file path of a given file path.
-		  If the new path's directories does not exist, create them."
-		    (let* ((backupRootDir (concat user-emacs-directory "emacs-backup/"))
-			   (filePath (replace-regexp-in-string "[A-Za-z]:" "" fpath )) ; remove Windows driver letter in path
-			   (backupFilePath (replace-regexp-in-string "//" "/" (concat backupRootDir filePath "~") )))
-		      (make-directory (file-name-directory backupFilePath) (file-name-directory backupFilePath))
-		      backupFilePath))
-		  (setopt make-backup-file-name-function 'backup-file-name)
+		;; Don't litter file system with *~ backup files; put them all inside
+		;; ~/.emacs.d/backup or wherever
+		(defun backup-file-name (fpath)
+		  "Return a new file path of a given file path.
+		If the new path's directories does not exist, create them."
+		  (let* ((backupRootDir (concat user-emacs-directory "emacs-backup/"))
+			 (filePath (replace-regexp-in-string "[A-Za-z]:" "" fpath )) ; remove Windows driver letter in path
+			 (backupFilePath (replace-regexp-in-string "//" "/" (concat backupRootDir filePath "~") )))
+		    (make-directory (file-name-directory backupFilePath) (file-name-directory backupFilePath))
+		    backupFilePath))
+		(setopt make-backup-file-name-function 'backup-file-name)
 
-		(setopt line-number-mode t)                        ; Show current line in modeline
-		(setopt column-number-mode t)                      ; Show column as well
+	      (setopt line-number-mode t)                        ; Show current line in modeline
+	      (setopt column-number-mode t)                      ; Show column as well
 
-		; Display line numbers in programming mode
-	      (add-hook 'prog-mode-hook 'display-line-numbers-mode)
-	      (setopt display-line-numbers-width 3)           ; Set a minimum width
+	      ; Display line numbers in programming mode
+	    (add-hook 'prog-mode-hook 'display-line-numbers-mode)
+	    (setopt display-line-numbers-width 3)           ; Set a minimum width
 
-	      ;; Nice line wrapping when working with text
-	      (add-hook 'text-mode-hook 'visual-line-mode)
+	    ;; Nice line wrapping when working with text
+	    (add-hook 'text-mode-hook 'visual-line-mode)
 
-	      ;; Modes to highlight the current line with
-	      (let ((hl-line-hooks '(text-mode-hook prog-mode-hook)))
-		(mapc (lambda (hook) (add-hook hook 'hl-line-mode)) hl-line-hooks))
+	    ;; Modes to highlight the current line with
+	    (let ((hl-line-hooks '(text-mode-hook prog-mode-hook)))
+	      (mapc (lambda (hook) (add-hook hook 'hl-line-mode)) hl-line-hooks))
 
-	      ;; C tabs
-	    (setq c-default-style "bsd"
-		  c-basic-offset 8
-		  tab-width 8
-		  indent-tabs-mode t)
+	    ;; C tabs
+	  (setq c-default-style "bsd"
+		c-basic-offset 8
+		tab-width 8
+		indent-tabs-mode t)
 
-	    ;; whitespace
-	  (require 'whitespace)
-	  (setq whitespace-line-column 80) ;; limit line length to 80
-	  (setq whitespace-style '(face lines-tail))
-	  (add-hook 'prog-mode-hook 'whitespace-mode)
+	  ;; whitespace
+	(require 'whitespace)
+	(setq whitespace-line-column 80) ;; limit line length to 80
+	(setq whitespace-style '(face lines-tail))
+	(add-hook 'prog-mode-hook 'whitespace-mode)
 
-	  ;; format all
-	(use-package format-all
-	  :bind ("C-f" . format-all-buffer))
+	;; format all
+      (use-package format-all
+	:bind ("C-f" . format-all-buffer))
 
-	;; indent guide
-      (use-package highlight-indent-guides
-	:hook (prog-mode . highlight-indent-guides-mode)
-	:custom (highlight-indent-guides-method 'character))
+      ;; indent guide
+    (use-package highlight-indent-guides
+      :hook (prog-mode . highlight-indent-guides-mode)
+      :custom (highlight-indent-guides-method 'character))
 
-      (fset 'yes-or-no-p 'y-or-n-p)
-    (setq use-dialog-box nil)
+    (fset 'yes-or-no-p 'y-or-n-p)
+  (setq use-dialog-box nil)
 
-    (add-to-list 'exec-path "~/.cargo/bin/")
+  (add-to-list 'exec-path "~/.cargo/bin/")
 
-    (setq-default fill-column 80)
+  (setq-default fill-column 80)
+
+  (electric-pair-mode 1)
 #+end_src
 
 * Projects
@@ -542,6 +577,12 @@ Project Management.
   :init
   (projectile-mode +1)
   :bind (:map projectile-mode-map
-              ("s-p" . projectile-command-map)
               ("C-c p" . projectile-command-map)))
+#+end_src
+
+* Key-bindings
+** Org
+#+begin_src emacs-lisp
+    (with-eval-after-load 'org
+      (define-key org-mode-map (kbd "C-c q") #'org-set-tags-command))
 #+end_src
