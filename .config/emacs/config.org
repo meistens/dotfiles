@@ -425,14 +425,11 @@ Error checks...
 WIP for somme stuff, till then, no notes...
 ** Org
 #+begin_src emacs-lisp
-    (use-package org
-      :ensure t)
-    (global-set-key (kbd "C-c l") #'org-store-link)
-    (global-set-key (kbd "C-c a") #'org-agenda)
-    (global-set-key (kbd "C-c c") #'org-capture)
-    (org-indent-mode)
-    (variable-pitch-mode 1)
-    (visual-line-mode 1)
+  (use-package org
+    :ensure t)
+  (org-indent-mode)
+  (variable-pitch-mode 1)
+  (visual-line-mode 1)
 #+end_src
 
 ** Org-Modern
@@ -441,8 +438,8 @@ WIP for somme stuff, till then, no notes...
       :ensure t)
   (add-hook 'org-mode-hook #'org-modern-mode)
   (add-hook 'org-agenda-finalize-hook #'org-modern-agenda)
-
 #+end_src
+
 ** Org-Agenda
 #+begin_src emacs-lisp
       (setq org-agenda-dim-blocked-tasks nil
@@ -583,6 +580,16 @@ Project Management.
 * Key-bindings
 ** Org
 #+begin_src emacs-lisp
-    (with-eval-after-load 'org
-      (define-key org-mode-map (kbd "C-c q") #'org-set-tags-command))
+  (global-set-key (kbd "C-c l") #'org-store-link)
+  (global-set-key (kbd "C-c a") #'org-agenda)
+  (global-set-key (kbd "C-c c") #'org-capture)
+  (with-eval-after-load 'org
+    (define-key org-mode-map (kbd "C-c q") #'org-set-tags-command)
+    (define-key org-mode-map (kbd "C-c t") #'org-todo)
+    (define-key org-mode-map (kbd "C-c b") #'org-toggle-checkbox))
+#+end_src
+
+** File/Dired
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-x f") #'find-file);;was orig. bound to some column cmd
 #+end_src
