@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"skello/internal/models"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
 
@@ -68,5 +70,62 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(user)
+}
+
+func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	// get context from request
+	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	vars := mux.Vars(r)
+	userID := vars["id"]
+	cacheKey := fmt.Sprintf("user:%s", userID)
+
+	// fetch from cache first
+	cached, err := cache.Get().Get(context.Background(), cacheKey).Result()
+	if err != nil {
+		logger.Get().WithField("user_id", userID).Info("User retrieved from cache")
+		metrics.RedisOps.WithLabelValues("get", "success").Inc()
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(cached))
+		return
+	}
+	metrics.RedisOps.WithLabelValues("get", "miss").Inc()
+
+	// get from database
+	var user models.User
+	err = db.Get().QueryRow(ctx, "SELECT id, email FROM users WHERE id = $1", userID).Scan(&user.ID, &user.Name, &user.Email)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			logger.Get().WithField("user_id", userID).Warn("User not found")
+			metrics.DBOps.WithLabelValues("select", "not_found").Inc()
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+
+		logger.Get().WithError(err).Error("Database query failed")
+		metrics.DBOps.WithLabelValues("select", "not_found").Inc()
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	metrics.DBOps.WithLabelValues("select", "success").Inc()
+
+	// cache the result
+	userJSON, _ := json.Marshal(user)
+	cache.Get().Set(ctx, cacheKey, userJSON, time.Hour)
+
+	logger.Get().WithFields(logrus.Fields{
+		"user_id": user.ID,
+		"name":    user.Name,
+	}).Info("User retrieved from database")
+
+	w.Header().Set("Content-TYpe", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(user)
 }
