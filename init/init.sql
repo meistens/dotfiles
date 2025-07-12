@@ -22,5 +22,5 @@ GRANT SELECT, USAGE ON ALL SEQUENCES IN SCHEMA public TO app_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, USAGE ON SEQUENCES TO app_user;
 
--- Optional: Grant CREATE privilege if the app needs to create tables
+-- Optional: Grant CREATE privilege if the app needs to create tables, or have a superuser run migrations
 GRANT CREATE ON SCHEMA public TO app_user;
