@@ -17,7 +17,7 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
     volumes:
-      - ./logs:/app/logs
+      - ./logs:/app/logs:Z
     networks:
       - monitoring
       - app-network
