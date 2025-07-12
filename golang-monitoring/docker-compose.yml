@@ -140,14 +140,19 @@ services:
   promtail:
     image: grafana/promtail:latest
     container_name: promtail_can_be_changed
-    user: "0:0" # permission issues, RHEL-related OS issues
+    user: "0:0" # Root access for reading container logs
+    security_opt:
+      - label=disable # Disable SELinux confinement for this container
     volumes:
-      - ./promtail-config.yml:/etc/promtail/config.yml:ro,Z
-      - ./logs:/var/log/app:rw,Z
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+      # Mount the entire home directory to access rootless container logs
+      - /home:/home:ro
+      # System logs and journald - using :z for shared content
       - /var/log/journal:/var/log/journal:ro
       - /run/log/journal:/run/log/journal:ro
-      # System logs:
       - /var/log:/var/log:ro
+      # For rootful containers (if you ever switch)
+      - /var/lib/containers:/var/lib/containers:ro
     command:
       - --config.file=/etc/promtail/config.yml
     depends_on:
