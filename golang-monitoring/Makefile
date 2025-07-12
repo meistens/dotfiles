@@ -69,7 +69,7 @@ setup: ## Initial setup - create directories and files
 
 dev: ## Development mode - rebuild and restart
 	podman-compose down
-	podman-compose build go-app
+	podman-compose build --no-cache go-app
 	podman-compose up -d
 
 monitor: ## Open monitoring dashboards
