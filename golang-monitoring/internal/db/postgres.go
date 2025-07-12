@@ -16,7 +16,7 @@ var pool *pgxpool.Pool
 func Init(ctx context.Context) error {
 	host, port, user, password, dbName := config.DatabaseConfig()
 
-	connString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=prefer",
+	connString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbName)
 
 	config, err := pgxpool.ParseConfig(connString)
