@@ -20,11 +20,11 @@ func main() {
 	logger.Init()
 	metrics.Init()
 
-	db.Init(context.Background())
+	db.MustInit(context.Background())
 	defer db.Close()
 
 	cache.Init()
-	cache.Close()
+	defer cache.Close()
 
 	// create router
 	ruter := mux.NewRouter()
