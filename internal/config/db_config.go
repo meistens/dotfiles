@@ -10,21 +10,19 @@ func GetEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-// db config
+// Database config - connects using app_user for runtime operations
 func DatabaseConfig() (string, string, string, string, string) {
-	host := GetEnv("DB_HOST", "localhost")
+	host := GetEnv("DB_HOST", "postgres") // Changed default to postgres for containerized
 	port := GetEnv("DB_PORT", "5432")
-	user := GetEnv("DB_USER", "postgres")
-	password := GetEnv("DB_PASSWORD", "postgres")
-	name := GetEnv("DB_NAME", "postgres")
+	user := GetEnv("APP_DB_USER", "app_user") // Use app_user for runtime
+	password := GetEnv("APP_DB_PASSWORD", "app_password")
+	name := GetEnv("DB_NAME", "monitoring_testing")
 	return host, port, user, password, name
 }
 
-// redis config
+// Redis config
 func RedisConfig() (string, string) {
-	host := GetEnv("REDIS_HOST", "localhost")
+	host := GetEnv("REDIS_HOST", "redis") // Changed default to redis for containerized
 	port := GetEnv("REDIS_PORT", "6379")
 	return host, port
 }
-
-// looks good to me
