@@ -14,9 +14,9 @@ func GetEnv(key, defaultValue string) string {
 func DatabaseConfig() (string, string, string, string, string) {
 	host := GetEnv("DB_HOST", "localhost")
 	port := GetEnv("DB_PORT", "5432")
-	user := GetEnv("APP_DB_USER", "postgres")
-	password := GetEnv("APP_DB_PASSWORD", "postgres")
-	name := GetEnv("DB_NAME", "pzztgres")
+	user := GetEnv("DB_USER", "postgres")
+	password := GetEnv("DB_PASSWORD", "postgres")
+	name := GetEnv("DB_NAME", "postgres")
 	return host, port, user, password, name
 }
 
