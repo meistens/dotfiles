@@ -35,4 +35,5 @@ func Close() {
 	}
 }
 
-// TODO: refine
+// TODO: rest of the prod. setup, check the docs and existing community posts on the matter
+// https://redis.io/docs/latest/develop/clients/go/connect/ just in case, start here, work your way down future me!
